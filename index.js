@@ -26,6 +26,7 @@ const domElements = (function(){
         cardsContainer
     }
 })()
+
 const store = (function(){
     
     const getCourseFromStore = ()=>{
@@ -43,8 +44,10 @@ const store = (function(){
         localStorage.setItem('courses', JSON.stringify(courses));
 
     }
-    const deleteCourseFromStore = ()=>{
-
+    const deleteCourseFromStore = (id)=>{
+        let courses = getCourseFromStore();
+        courses = courses.filter(course => course.id != parseInt(id));
+        localStorage.setItem('courses', JSON.stringify(courses))
     }
     return {
         storeCourseToStore,
@@ -52,8 +55,10 @@ const store = (function(){
         deleteCourseFromStore
     }
 })()
+
 const ui = (function(){
-    const alert = ()=>{
+    const alert = (message)=>{
+        domElements.errorMessage.textContent = message;
         domElements.errorMessage.style.display = 'block';
         setTimeout(() => {
             domElements.errorMessage.style.display = 'none';
@@ -83,27 +88,37 @@ const ui = (function(){
                     </div>
                     <div>
                         <span class="course_link">Link:</span>
-                        <a href="${currentCourse.link}" class="link">Visit Here</a>
+                        <a href="${currentCourse.link}"  class="link" target="_blank">Visit Here</a>
                     </div>
-                    <a href="#" class="course_delete" data-id="${currentCourse.id}"><i class="far fa-trash-alt"></i></a>
+                    <a href="#" class="course_delete delete" data-id="${currentCourse.id}" >Delete</a>
                 </div>
             </div>  
         `
         domElements.cardsContainer.appendChild(card);
+        
+        document.querySelectorAll('.card').forEach(card => card.addEventListener('click', removeCard));
 
     }
+     
     const displayInLoad = ()=>{
         store.getCourseFromStore().forEach(course => displayCourse(course));
     }
     const displayCourse = (currentCourse)=>{
         generateDomNodes(currentCourse);
     }
+    
     return {
         alert,
         displayCourse,
         displayInLoad
     }
 })()
+const removeCard = (e)=>{
+     if(e.target.classList.contains('delete')){
+         e.target.parentElement.parentElement.remove()
+         store.deleteCourseFromStore(e.target.getAttribute('data-id'))
+     }
+}
 
 const courses = (customer,course,link,author,id)=>{
     return {
@@ -115,16 +130,31 @@ const courses = (customer,course,link,author,id)=>{
     }
 }
 
+function validURL(str) {
+    var pattern = new RegExp('^(https?:\\/\\/)?'+ // protocol
+      '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|'+ // domain name
+      '((\\d{1,3}\\.){3}\\d{1,3}))'+ // OR ip (v4) address
+      '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*'+ // port and path
+      '(\\?[;&a-z\\d%_.~+=-]*)?'+ // query string
+      '(\\#[-a-z\\d_]*)?$','i'); // fragment locator
+    return !!pattern.test(str);
+  }
+    
+
 function addCourse(e){
     e.preventDefault();
 
-    if(domElements.customerNameInput.value.trim() == '' ||
+    if((domElements.customerNameInput.value.trim() == '' ||
        domElements.courseNameInput.value.trim() == '' ||
        domElements.authorNameInput.value.trim() == '' ||
-       domElements.courseLinkInput.value.trim() == '' ) {
-        ui.alert();
+       domElements.courseLinkInput.value.trim() == '')) {
+        ui.alert('Please fill all inputs');
         return;
-       }
+    } else if((!validURL(domElements.courseLinkInput.value))){
+        console.log('dsd')
+        ui.alert('Please provide correct url');
+        return;
+    }
        const currentCourse = courses(domElements.customerNameInput.value,
                                      domElements.courseNameInput.value,
                                      domElements.courseLinkInput.value,
